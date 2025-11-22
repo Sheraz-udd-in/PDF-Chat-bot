@@ -11,8 +11,6 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 # Prompt template and chains
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains import create_retrieval_chain
 
 st.set_page_config(page_title="PDF QA Bot")
 st.title("📄 PDF QA Bot")
@@ -44,27 +42,16 @@ def build_qa_chain(pdf_path):
 
     # Groq LLM (reads GROQ_API_KEY from env)
     llm = ChatGroq(
-        model="mixtral-8x7b-32768",  # change model if you want
+        model="llama-3.3-70b-versatile",  # Updated to current model
         temperature=0.2,
         groq_api_key=os.getenv("GROQ_API_KEY")
     )
 
-    # Prompt for the document combiner
-    prompt = ChatPromptTemplate.from_template(
-        """Answer the question based on the following context:
+    # Simple RAG: format documents and query into a single prompt
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
 
-{context}
-
-Question: {input}
-
-Answer:"""
-    )
-
-    # Create chains
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    qa_chain = create_retrieval_chain(retriever, document_chain)
-
-    return qa_chain
+    return retriever, llm
 
 if uploaded_file:
     if not os.getenv("GROQ_API_KEY"):
@@ -77,16 +64,29 @@ if uploaded_file:
 
         try:
             st.info("Indexing document (this may take a few seconds)...")
-            qa_chain = build_qa_chain(tmp_path)
+            retriever, llm = build_qa_chain(tmp_path)
 
             query = st.text_input("Ask a question about the document:", value="What is this paper about?")
             if st.button("Ask"):
                 with st.spinner("Generating answer..."):
-                    # invoke returns a dict that includes 'answer'
-                    resp = qa_chain.invoke({"input": query})
-                    answer = resp.get("answer") or resp.get("output_text") or resp.get("result") or "No answer generated."
+                    # Retrieve relevant documents
+                    docs = retriever.invoke(query)
+                    
+                    # Format context
+                    context = "\n\n".join(doc.page_content for doc in docs)
+                    
+                    # Create prompt and get answer
+                    prompt = f"""Answer the question based on the following context:
+
+{context}
+
+Question: {query}
+
+Answer:"""
+                    
+                    answer = llm.invoke(prompt)
                     st.subheader("Answer:")
-                    st.write(answer)
+                    st.write(answer.content)
 
         except Exception as e:
             st.error(f"Error: {e}")
