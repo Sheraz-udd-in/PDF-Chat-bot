@@ -1,6 +1,6 @@
 # PDF QA Bot
 
-This Streamlit app allows you to upload a PDF and ask questions about its content using **LangChain** and **GeminiPro**.
+This Streamlit app allows you to upload a PDF and ask questions about its content using **LangChain** and **Groq's Llama 3.3 70B**.
 
 ---
 
@@ -9,19 +9,22 @@ This Streamlit app allows you to upload a PDF and ask questions about its conten
 - **Text Chunking**: Splits the PDF into manageable chunks for processing.  
 - **Embeddings**: Uses HuggingFace embeddings for semantic search.  
 - **Vector Store**: Stores document chunks in a Chroma vector database.  
-- **Retrieval QA**: Answers your questions using GeminiPro LLM and retrieves relevant document sources.  
+- **Retrieval QA**: Answers your questions using Groq's Llama 3.3 70B model and retrieves relevant document sources.  
 
 ---
 
 ## 📦 Requirements
-- Python 3.8+  
+- Python 3.11+  
 - Streamlit  
 - langchain  
-- langchain_community  
-- langchain_text_splitters  
+- langchain-community  
+- langchain-core
+- langchain-text-splitters  
+- langchain-groq
 - sentence-transformers  
 - ChromaDB  
-- GeminiPro API key (set as `GOOGLE_API_KEY` environment variable)  
+- pypdf
+- Groq API key (enter via the app interface)  
 
 ---
 
@@ -29,28 +32,49 @@ This Streamlit app allows you to upload a PDF and ask questions about its conten
 
 ### 1. Install dependencies
 ```bash
-pip install -r requirements.txt
+pip install streamlit langchain langchain-community langchain-text-splitters langchain-core langchain-groq sentence-transformers chromadb pypdf
 ```
-### 2. Set your GeminiPro API key
+
+### 2. Run the app
 ```bash
-export GOOGLE_API_KEY="your_api_key_here"   # Linux / macOS
-set GOOGLE_API_KEY=your_api_key_here        # Windows (CMD)
-$env:GOOGLE_API_KEY="your_api_key_here"     # Windows (PowerShell)
+streamlit run new.py
 ```
-### 3. Run the app
-```bash
-streamlit run app.py
-```
+
+### 3. Enter your Groq API key
+Get a free API key from [console.groq.com](https://console.groq.com) and enter it in the app interface.
+
 ### 4. Upload a PDF and ask questions!
 
-The app will process the PDF, create embeddings, and allow you to query it.
+The app will process the PDF, create embeddings, and allow you to query it using AI.
+
+---
 
 ## 📖 Code Overview
 
-Loads and splits PDF into chunks.
+- Loads and splits PDF into chunks using `RecursiveCharacterTextSplitter`
+- Embeds chunks using HuggingFace's `sentence-transformers/all-MiniLM-L6-v2` model
+- Stores embeddings in Chroma vector database
+- Uses Groq's `llama-3.3-70b-versatile` model for question answering
+- Retrieves relevant context and generates accurate answers
 
-Embeds chunks and stores them in Chroma vector DB.
+---
 
-Uses GeminiPro LLM for question answering.
+## 🔑 Getting a Groq API Key
 
-Displays answers and source documents.
+1. Visit [console.groq.com](https://console.groq.com)
+2. Sign up or log in
+3. Navigate to API Keys section
+4. Create a new API key
+5. Copy and paste it into the app
+
+---
+
+## ⚙️ Model Information
+
+**Current Model**: `llama-3.3-70b-versatile`  
+**Provider**: Groq  
+**Temperature**: 0.2 (for consistent, factual responses)
+
+---
+
+**Note**: Make sure all dependencies are installed before running the app.
